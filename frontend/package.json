@@ -1,0 +1,9 @@
+{
+    "name": "harn-frontend",
+    "version": "1.0.0",
+    "description": "H.A.R.N. Coffee Leaf Disease Detection Frontend",
+    "scripts": {
+        "dev": "cd .. && python -m http.server 3000",
+        "build": "echo 'No build required for static site'"
+    }
+}

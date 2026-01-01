@@ -1,0 +1,8 @@
+# Use whatever TensorFlow version is available for your Python
+tensorflow-cpu
+keras
+numpy
+scikit-learn
+Pillow
+Flask
+flask-cors
