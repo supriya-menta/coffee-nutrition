@@ -8,3 +8,4 @@ Pillow
 Flask
 flask-cors
 gunicorn
+python-dotenv
