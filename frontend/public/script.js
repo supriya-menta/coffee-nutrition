@@ -2,7 +2,7 @@
 const CONFIG = {
     maxFileSize: 10 * 1024 * 1024, // 10MB
     acceptedFormats: ['image/png', 'image/jpeg', 'image/jpg'],
-    apiEndpoint: 'http://localhost:5000/predict', // Update this with your Render backend URL after deployment
+    apiEndpoint: 'https://coffee-leaf-api.onrender.com/predict', // Update this with your Render backend URL after deployment
 };
 
 // ===== Nutrient Information Database =====
