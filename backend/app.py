@@ -1,158 +1,125 @@
 import os
-os.environ['TF_CPP_MIN_LOG_LEVEL'] = '2'
+import io
 import numpy as np
-from tensorflow import keras
-from sklearn.base import BaseEstimator, TransformerMixin
-from sklearn.pipeline import Pipeline
-from keras.preprocessing import image
 from PIL import Image
 from flask import Flask, request, jsonify
 from flask_cors import CORS
-import io
-from dotenv import load_dotenv
+import tensorflow as tf
+from tensorflow.keras.preprocessing import image
+from tensorflow.keras.models import load_model
 
-# Load environment variables from .env file
-load_dotenv()
-
+# Initialize Flask app
 app = Flask(__name__)
-# Enable CORS for all origins
-CORS(app, resources={r"/*": {"origins": "*"}})
 
-@app.after_request
-def add_cors_headers(response):
-    response.headers.add("Access-Control-Allow-Origin", "*")
-    response.headers.add("Access-Control-Allow-Headers", "*")
-    response.headers.add("Access-Control-Allow-Methods", "*")
-    return response
+# 1. Enable CORS for specifically the Vercel frontend and common origins
+# This ensures development and production both work
+CORS(app, resources={
+    r"/*": {
+        "origins": [
+            "https://coffee-nutrition.vercel.app",
+            "http://localhost:3000",
+            "http://127.0.0.1:3000"
+        ]
+    }
+})
 
-# Global variable to store the model pipeline
-model_pipeline = None
+# Global variables for model
+MODEL_PATH = os.path.join(os.path.dirname(__file__), 'model.h5')
+CLASS_NAMES = ['P_Deficiency', 'Healthy', 'N_Deficiency', 'K_Deficiency']
+model = None
 
-def load_model_pipeline():
-    """Load the trained model and create prediction pipeline"""
-    global model_pipeline
-    
-    if model_pipeline is not None:
-        return model_pipeline
-    
-    print("Loading model...")
-    # Load model with compile=False to avoid compatibility issues
-    model_path = os.path.join(os.path.dirname(__file__), 'model', 'weights.hdf5')
-    if not os.path.exists(model_path):
-        # Try root directory
-        model_path = os.path.join(os.path.dirname(__file__), '..', 'weights.hdf5')
-    
-    print(f"Loading model from: {model_path}")
-    # Load without compiling to avoid version conflicts
-    lr = keras.models.load_model(model_path, compile=False)
-    print("Model loaded successfully!")
-    
-    # Prediction Pipeline
-    class Preprocessor(BaseEstimator, TransformerMixin):
-        def fit(self, img_object):
-            return self
-        
-        def transform(self, img_object):
-            img_array = image.img_to_array(img_object)
-            expanded = np.expand_dims(img_array, axis=0)
-            return expanded
-    
-    class Predictor(BaseEstimator, TransformerMixin):
-        def __init__(self, model):
-            self.model = model
-        
-        def fit(self, img_array):
-            return self
-        
-        def predict(self, img_array):
-            probabilities = self.model.predict(img_array)
-            class_names = ['P_Deficiency', 'Healthy', 'N_Deficiency', 'K_Deficiency']
-            predicted_class = class_names[probabilities.argmax()]
-            confidence = float(probabilities.max())
-            
-            return {
-                'prediction': predicted_class,
-                'confidence': confidence,
-                'probabilities': {
-                    class_names[i]: float(probabilities[0][i]) 
-                    for i in range(len(class_names))
-                }
-            }
-    
-    model_pipeline = Pipeline([
-        ('preprocessor', Preprocessor()),
-        ('predictor', Predictor(lr))
-    ])
-    
-    return model_pipeline
+def get_model():
+    """Load model once and reuse"""
+    global model
+    if model is None:
+        print(f"Loading model from {MODEL_PATH}...")
+        try:
+            # compile=False is safer for deployment with different TF versions
+            model = load_model(MODEL_PATH, compile=False)
+            print("Model loaded successfully!")
+        except Exception as e:
+            print(f"CRITICAL ERROR: Failed to load model: {str(e)}")
+            model = None
+    return model
 
+# 2. Implement the /predict route
 @app.route('/predict', methods=['POST'])
 def predict():
-    """Endpoint to predict nutrient deficiency from uploaded image"""
+    """
+    Accepts an image file with key 'file',
+    makes a prediction using the TensorFlow model,
+    and returns JSON.
+    """
     try:
-        # Check if image file is present
+        # 3. Include proper error handling for missing files
         if 'file' not in request.files:
-            return jsonify({'error': 'No file uploaded'}), 400
+            return jsonify({
+                "error": "No file part",
+                "message": "Please upload an image with the key 'file'"
+            }), 400
         
         file = request.files['file']
-        
         if file.filename == '':
-            return jsonify({'error': 'No file selected'}), 400
-        
-        # Read and process the image
+            return jsonify({
+                "error": "No selected file",
+                "message": "No file was uploaded"
+            }), 400
+
+        # Read the image
         img_bytes = file.read()
         img = Image.open(io.BytesIO(img_bytes))
         
-        # Convert to RGB if necessary
+        # Preprocess the image (Standard for many leaf models)
         if img.mode != 'RGB':
             img = img.convert('RGB')
-        
-        # Resize to model input size
         img = img.resize((224, 224))
         
-        # Load model pipeline
-        pipeline = load_model_pipeline()
+        img_array = image.img_to_array(img)
+        img_array = np.expand_dims(img_array, axis=0) # Add batch dimension
+        # Normalize if your model requires it (common for TF/Keras)
+        # img_array = img_array / 255.0 
+
+        # Load model and predict
+        ml_model = get_model()
+        if ml_model is None:
+            return jsonify({"error": "Model initialization failed"}), 500
+
+        predictions = ml_model.predict(img_array)
         
-        # Make prediction
-        result = pipeline.predict(img)
-        
-        return jsonify(result), 200
-    
-    except Exception as e:
-        import traceback
-        error_details = traceback.format_exc()
-        print(f"!!! Error during prediction: {str(e)}")
-        print(error_details)
+        # Get result
+        predicted_class_idx = np.argmax(predictions[0])
+        confidence = float(np.max(predictions[0]))
+        prediction_label = CLASS_NAMES[predicted_class_idx]
+
+        # 2. Return JSON in the requested format
         return jsonify({
-            'error': 'Prediction failed',
-            'message': str(e),
-            'details': 'Check backend logs for full traceback'
+            "prediction": prediction_label,
+            "confidence": round(confidence, 4)
+        }), 200
+
+    except Exception as e:
+        print(f"Error during prediction: {str(e)}")
+        return jsonify({
+            "error": "Prediction error",
+            "message": str(e)
         }), 500
 
 @app.route('/health', methods=['GET'])
 def health():
-    """Health check endpoint"""
-    return jsonify({'status': 'healthy', 'model_loaded': model_pipeline is not None}), 200
+    return jsonify({"status": "healthy", "model_loaded": model is not None}), 200
 
 @app.route('/', methods=['GET'])
-def home():
-    """Home endpoint"""
+def index():
     return jsonify({
-        'message': 'Coffee Leaf Disease Detection API',
-        'version': '1.0',
-        'endpoints': {
-            '/predict': 'POST - Upload image for prediction',
-            '/health': 'GET - Check API health status'
-        }
+        "message": "Coffee Leaf Nutrition Prediction API",
+        "status": "Running",
+        "endpoints": ["/predict (POST)", "/health (GET)"]
     }), 200
 
+# 4. Production-ready setup
 if __name__ == '__main__':
-    # Pre-load the model
-    print("Initializing Coffee Leaf Disease DetectionAPI...")
-    load_model_pipeline()
-    
-    # Run the Flask app
-    # On Render, the PORT environment variable is automatically set
+    # Pre-warm the model
+    get_model()
+    # For local testing
     port = int(os.environ.get('PORT', 5000))
-    print(f"Starting Flask server on 0.0.0.0:{port}")
-    app.run(host='0.0.0.0', port=port)
+    app.run(host='0.0.0.0', port=port, debug=False)
