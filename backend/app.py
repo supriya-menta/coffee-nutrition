@@ -1,4 +1,6 @@
 import os
+os.environ['TF_CPP_MIN_LOG_LEVEL'] = '3'  # Minimize TF logging
+os.environ['TF_ENABLE_ONEDNN_OPTS'] = '0' # Stability on some cloud envs
 import io
 import numpy as np
 from PIL import Image
@@ -11,8 +13,8 @@ from tensorflow.keras.models import load_model
 # Initialize Flask app
 app = Flask(__name__)
 
-# 1. Exact CORS origin matching as requested
-CORS(app, origins=["https://coffee-nutrition.vercel.app"])
+# 1. Enable CORS for all origins (robust fix for connectivity issues)
+CORS(app, resources={r"/*": {"origins": "*"}})
 
 # Absolute path to model.h5 in the backend directory
 # We use absolute path to avoid issues with different working directories on Render
