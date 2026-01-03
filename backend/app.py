@@ -135,9 +135,9 @@ if __name__ == '__main__':
     # Pre-load the model
     print("Initializing H.A.R.N. API...")
     load_model_pipeline()
-    print("Model loaded and ready!")
     
     # Run the Flask app
+    # On Render, the PORT environment variable is automatically set
     port = int(os.environ.get('PORT', 5000))
-    print(f"Starting Flask server on port {port}")
-    app.run(debug=False, host='0.0.0.0', port=port)
+    print(f"Starting Flask server on 0.0.0.0:{port}")
+    app.run(host='0.0.0.0', port=port)
