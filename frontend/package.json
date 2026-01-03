@@ -1,7 +1,7 @@
 {
-    "name": "harn-frontend",
+    "name": "coffee-plant-nutrition-frontend",
     "version": "1.0.0",
-    "description": "H.A.R.N. Coffee Leaf Disease Detection Frontend",
+    "description": "Coffee Plant Nutrition Prediction Frontend",
     "scripts": {
         "dev": "cd .. && python -m http.server 3000",
         "build": "echo 'No build required for static site'"

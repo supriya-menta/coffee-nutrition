@@ -123,7 +123,7 @@ def health():
 def home():
     """Home endpoint"""
     return jsonify({
-        'message': 'H.A.R.N. Coffee Leaf Disease Detection API',
+        'message': 'Coffee Leaf Disease Detection API',
         'version': '1.0',
         'endpoints': {
             '/predict': 'POST - Upload image for prediction',
@@ -133,7 +133,7 @@ def home():
 
 if __name__ == '__main__':
     # Pre-load the model
-    print("Initializing H.A.R.N. API...")
+    print("Initializing Coffee Leaf Disease DetectionAPI...")
     load_model_pipeline()
     
     # Run the Flask app

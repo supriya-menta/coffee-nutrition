@@ -486,5 +486,5 @@ function showError(message) {
 // ===== Initialize Application =====
 document.addEventListener('DOMContentLoaded', () => {
     initializeEventListeners();
-    console.log('H.A.R.N. Coffee Leaf Disease Detection System initialized');
+    console.log('Coffee Plant Nutrition Prediction System initialized');
 });

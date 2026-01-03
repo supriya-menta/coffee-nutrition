@@ -1,11 +1,11 @@
-# H.A.R.N. - Coffee Leaf Disease Detection
+
 
 ## Deployment Guide for Vercel
 
 ### Project Structure
 
 ```
-HARN/
+Coffee Plant Nutrition Prediction/
 ├── frontend/                 # Deploy this folder to Vercel
 │   ├── public/
 │   │   ├── index.html
@@ -42,32 +42,14 @@ The frontend is already configured in the `frontend/` directory with:
 **Option A: Using Vercel CLI**
 
 ```bash
-# Install Vercel CLI
-npm install -g vercel
+
 
 # Navigate to frontend directory
 cd frontend
 
-# Deploy
-vercel
-
-# Follow prompts to link to your Vercel account
-```
-
-**Option B: Using Vercel Dashboard**
-
-1. Go to [vercel.com](https://vercel.com)
-2. Click "New Project"
-3. Import your GitHub repository
-4. Set root directory to `frontend`
-5. Click "Deploy"
 
 ### Step 3: Configure Environment Variables
 
-In Vercel dashboard, add:
-- `API_ENDPOINT`: Your backend API URL (see backend deployment below)
-
----
 
 ## Backend Deployment Options
 
@@ -75,45 +57,8 @@ In Vercel dashboard, add:
 
 Your `weights.hdf5` file is **97MB**, which exceeds Vercel's 50MB serverless function limit.
 
-### Recommended Solution: External Backend Hosting
 
-**Option 1: Railway (Recommended)**
 
-1. Go to [railway.app](https://railway.app)
-2. Create new project from GitHub
-3. Select `backend` directory as root
-4. Railway will auto-detect Python and install dependencies
-5. Set environment variables if needed
-6. Deploy!
-
-**Option 2: Render**
-
-1. Go to [render.com](https://render.com)
-2. Create new Web Service
-3. Connect your GitHub repository
-4. Set root directory to `backend`
-5. Build command: `pip install -r requirements.txt`
-6. Start command: `python app.py`
-7. Deploy!
-
-**Option 3: Heroku**
-
-```bash
-# In backend directory
-heroku create your-app-name
-git subtree push --prefix backend heroku main
-```
-
-### After Backend Deployment
-
-1. Copy your backend URL (e.g., `https://your-app.railway.app`)
-2. Update frontend `script.js` line 327:
-   ```javascript
-   const response = await fetch('YOUR_BACKEND_URL/predict', {
-   ```
-3. Redeploy frontend to Vercel
-
----
 
 ## Local Testing
 

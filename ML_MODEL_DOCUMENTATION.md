@@ -366,7 +366,7 @@ This system uses **REAL machine learning predictions**, not static/mock data.
 ## 📁 Project Structure
 
 ```
-HARN/
+Coffee Plant Nutrition Prediction/
 ├── weights.hdf5          # Trained CNN model (97MB)
 ├── app.py                # Flask backend API
 ├── index.html            # Frontend interface
