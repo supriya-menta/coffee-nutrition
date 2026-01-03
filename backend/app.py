@@ -15,8 +15,15 @@ from dotenv import load_dotenv
 load_dotenv()
 
 app = Flask(__name__)
-# Enable CORS for all origins, allowing the hosted frontend (Vercel) to talk to the backend (Render)
+# Enable CORS for all origins
 CORS(app, resources={r"/*": {"origins": "*"}})
+
+@app.after_request
+def add_cors_headers(response):
+    response.headers.add("Access-Control-Allow-Origin", "*")
+    response.headers.add("Access-Control-Allow-Headers", "*")
+    response.headers.add("Access-Control-Allow-Methods", "*")
+    return response
 
 # Global variable to store the model pipeline
 model_pipeline = None
