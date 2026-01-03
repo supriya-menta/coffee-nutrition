@@ -2,7 +2,7 @@
 const CONFIG = {
     maxFileSize: 10 * 1024 * 1024, // 10MB
     acceptedFormats: ['image/png', 'image/jpeg', 'image/jpg'],
-    apiEndpoint: 'https://coffee-leaf-api.onrender.com/predict', // Update this with your Render backend URL after deployment
+    apiEndpoint: 'https://coffee-leaf-api.onrender.com/predict', // Update this with your actual API endpoint
 };
 
 // ===== Nutrient Information Database =====
@@ -10,6 +10,20 @@ const NUTRIENT_INFO = {
     'N_Deficiency': {
         diagnosis: 'Nitrogen Deficiency Detected',
         icon: '🍃',
+        causes: [
+            'Poor soil fertility or depleted nitrogen reserves',
+            'Excessive rainfall causing nitrogen leaching',
+            'Sandy soils with low organic matter content',
+            'Inadequate fertilization or improper timing',
+            'High crop density competing for available nitrogen'
+        ],
+        prevention: [
+            'Regular soil testing to monitor nitrogen levels',
+            'Apply organic matter (compost, manure) annually',
+            'Use slow-release nitrogen fertilizers',
+            'Practice proper crop rotation with legumes',
+            'Maintain optimal soil pH (6.0-6.5) for nutrient availability'
+        ],
         nutrients: {
             nitrogen: {
                 name: 'Nitrogen (N)',
@@ -47,6 +61,20 @@ const NUTRIENT_INFO = {
     'P_Deficiency': {
         diagnosis: 'Phosphorus Deficiency Detected',
         icon: '🌿',
+        causes: [
+            'Acidic or alkaline soil pH limiting phosphorus availability',
+            'Cold soil temperatures reducing phosphorus uptake',
+            'High iron or aluminum content binding phosphorus',
+            'Compacted soil restricting root development',
+            'Low organic matter content in soil'
+        ],
+        prevention: [
+            'Maintain soil pH between 6.0-7.0 for optimal availability',
+            'Add organic matter to improve soil structure',
+            'Avoid over-liming which can reduce phosphorus availability',
+            'Use mycorrhizal fungi to enhance phosphorus uptake',
+            'Apply phosphorus fertilizers at planting time'
+        ],
         nutrients: {
             nitrogen: {
                 name: 'Nitrogen (N)',
@@ -84,6 +112,20 @@ const NUTRIENT_INFO = {
     'K_Deficiency': {
         diagnosis: 'Potassium Deficiency Detected',
         icon: '🌾',
+        causes: [
+            'Sandy or light-textured soils with low potassium retention',
+            'Excessive rainfall or irrigation causing leaching',
+            'High magnesium or calcium levels competing with potassium',
+            'Continuous cropping without adequate fertilization',
+            'Poor drainage leading to potassium loss'
+        ],
+        prevention: [
+            'Apply potassium-rich fertilizers before heavy rainfall',
+            'Use mulching to reduce leaching losses',
+            'Maintain balanced fertilization (NPK ratio)',
+            'Improve soil structure with organic matter',
+            'Monitor and adjust irrigation to prevent excessive leaching'
+        ],
         nutrients: {
             nitrogen: {
                 name: 'Nitrogen (N)',
@@ -121,6 +163,14 @@ const NUTRIENT_INFO = {
     'Healthy': {
         diagnosis: 'Healthy Leaf - No Deficiency',
         icon: '✅',
+        causes: [],
+        prevention: [
+            'Continue current nutrient management practices',
+            'Regular soil testing every 6-12 months',
+            'Maintain consistent watering schedule',
+            'Monitor plant health for early detection of issues',
+            'Keep records of fertilization and crop performance'
+        ],
         nutrients: {
             nitrogen: {
                 name: 'Nitrogen (N)',
@@ -370,8 +420,8 @@ function displayResults(result) {
     // Display nutrient recommendations
     displayNutrientRecommendations(info.nutrients);
 
-    // Display treatment information
-    displayTreatmentInfo(info.treatment);
+    // Display treatment information with causes and prevention
+    displayTreatmentInfo(info);
 
     // Show results sections with animation
     elements.resultsSection.style.display = 'block';
@@ -407,74 +457,50 @@ function displayNutrientRecommendations(nutrients) {
     });
 }
 
-function displayTreatmentInfo(treatments) {
-    const treatmentList = treatments.map(treatment =>
+function displayTreatmentInfo(info) {
+    let html = '';
+
+    // Add causes section if available
+    if (info.causes && info.causes.length > 0) {
+        const causesList = info.causes.map(cause =>
+            `<li>${cause}</li>`
+        ).join('');
+
+        html += `
+            <div class="info-section">
+                <h4>🔍 Possible Causes</h4>
+                <ul>${causesList}</ul>
+            </div>
+        `;
+    }
+
+    // Add prevention section
+    if (info.prevention && info.prevention.length > 0) {
+        const preventionList = info.prevention.map(item =>
+            `<li>${item}</li>`
+        ).join('');
+
+        html += `
+            <div class="info-section">
+                <h4>🛡️ Prevention Methods</h4>
+                <ul>${preventionList}</ul>
+            </div>
+        `;
+    }
+
+    // Add treatment section
+    const treatmentList = info.treatment.map(treatment =>
         `<li>${treatment}</li>`
     ).join('');
 
-    elements.treatmentInfo.innerHTML = `
-        <h4>Recommended Actions</h4>
-        <ul>
-            ${treatmentList}
-        </ul>
+    html += `
+        <div class="info-section">
+            <h4>🌱 Recommended Actions</h4>
+            <ul>${treatmentList}</ul>
+        </div>
     `;
-}
 
-// ===== Model Metrics Functions =====
-async function loadModelMetrics() {
-    try {
-        const response = await fetch('../../model_metrics/metrics.json');
-        if (!response.ok) {
-            console.warn('Could not load model metrics');
-            return;
-        }
-
-        const metrics = await response.json();
-        displayModelMetrics(metrics);
-    } catch (error) {
-        console.error('Error loading metrics:', error);
-    }
-}
-
-function displayModelMetrics(metrics) {
-    // Display overall metrics
-    const overall = metrics.overall_metrics;
-    document.getElementById('metricAccuracy').textContent = `${(overall.accuracy * 100).toFixed(2)}%`;
-    document.getElementById('metricPrecision').textContent = `${(overall.precision * 100).toFixed(2)}%`;
-    document.getElementById('metricRecall').textContent = `${(overall.recall * 100).toFixed(2)}%`;
-    document.getElementById('metricF1').textContent = `${(overall.f1_score * 100).toFixed(2)}%`;
-
-    // Display class-specific metrics
-    const classMetricsGrid = document.getElementById('classMetricsGrid');
-    classMetricsGrid.innerHTML = '';
-
-    Object.entries(metrics.class_metrics).forEach(([className, classMetric]) => {
-        const card = document.createElement('div');
-        card.className = 'class-metric-card';
-
-        card.innerHTML = `
-            <div class="class-metric-header">
-                <span class="class-name">${className.replace('_', ' ')}</span>
-                <span class="class-support">${classMetric.support} samples</span>
-            </div>
-            <div class="class-metric-values">
-                <div class="class-metric-item">
-                    <div class="class-metric-item-label">Precision</div>
-                    <div class="class-metric-item-value">${(classMetric.precision * 100).toFixed(1)}%</div>
-                </div>
-                <div class="class-metric-item">
-                    <div class="class-metric-item-label">Recall</div>
-                    <div class="class-metric-item-value">${(classMetric.recall * 100).toFixed(1)}%</div>
-                </div>
-                <div class="class-metric-item">
-                    <div class="class-metric-item-label">F1-Score</div>
-                    <div class="class-metric-item-value">${(classMetric.f1_score * 100).toFixed(1)}%</div>
-                </div>
-            </div>
-        `;
-
-        classMetricsGrid.appendChild(card);
-    });
+    elements.treatmentInfo.innerHTML = html;
 }
 
 // ===== Utility Functions =====
@@ -486,5 +512,5 @@ function showError(message) {
 // ===== Initialize Application =====
 document.addEventListener('DOMContentLoaded', () => {
     initializeEventListeners();
-    console.log('Coffee Plant Nutrition Prediction System initialized');
+    console.log('Coffee Leaf Nutrition Prediction System initialized');
 });

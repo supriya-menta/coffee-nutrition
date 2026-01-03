@@ -1,9 +1,4 @@
-// ===== Configuration =====
-const CONFIG = {
-    maxFileSize: 10 * 1024 * 1024, // 10MB
-    acceptedFormats: ['image/png', 'image/jpeg', 'image/jpg'],
-    apiEndpoint: '/predict', // Update this with your actual API endpoint
-};
+apiEndpoint: 'https://coffee-leaf-api.onrender.com/predict', // Update this with your actual API endpoint
 
 // ===== Nutrient Information Database =====
 const NUTRIENT_INFO = {
@@ -374,7 +369,7 @@ async function callPredictionAPI(file) {
     const formData = new FormData();
     formData.append('file', file);
 
-    const response = await fetch('http://localhost:5000/predict', {
+    const response = await fetch(CONFIG.apiEndpoint, {
         method: 'POST',
         body: formData
     });
