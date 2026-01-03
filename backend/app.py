@@ -11,115 +11,92 @@ from tensorflow.keras.models import load_model
 # Initialize Flask app
 app = Flask(__name__)
 
-# 1. Enable CORS for specifically the Vercel frontend and common origins
-# This ensures development and production both work
-CORS(app, resources={
-    r"/*": {
-        "origins": [
-            "https://coffee-nutrition.vercel.app",
-            "http://localhost:3000",
-            "http://127.0.0.1:3000"
-        ]
-    }
-})
+# 1. Exact CORS origin matching as requested
+CORS(app, origins=["https://coffee-nutrition.vercel.app"])
 
-# Global variables for model
-MODEL_PATH = os.path.join(os.path.dirname(__file__), 'model.h5')
-CLASS_NAMES = ['P_Deficiency', 'Healthy', 'N_Deficiency', 'K_Deficiency']
+# Absolute path to model.h5 in the backend directory
+BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+MODEL_PATH = os.path.join(BASE_DIR, 'model.h5')
+
+# Model and labels
 model = None
+# Labels based on the user's specific requirement order and model architecture
+LABELS = ["P_Deficiency", "Healthy", "N_Deficiency", "K_Deficiency"]
 
 def get_model():
-    """Load model once and reuse"""
+    """Load model with absolute path and compile=False for stability"""
     global model
     if model is None:
-        print(f"Loading model from {MODEL_PATH}...")
+        if not os.path.exists(MODEL_PATH):
+            print(f"ERROR: Model file not found at {MODEL_PATH}")
+            return None
         try:
-            # compile=False is safer for deployment with different TF versions
+            print(f"Loading model from {MODEL_PATH}...")
             model = load_model(MODEL_PATH, compile=False)
             print("Model loaded successfully!")
         except Exception as e:
-            print(f"CRITICAL ERROR: Failed to load model: {str(e)}")
+            print(f"CRITICAL ERROR: {str(e)}")
             model = None
     return model
 
-# 2. Implement the /predict route
-@app.route('/predict', methods=['POST'])
+@app.route("/predict", methods=["POST"])
 def predict():
-    """
-    Accepts an image file with key 'file',
-    makes a prediction using the TensorFlow model,
-    and returns JSON.
-    """
-    try:
-        # 3. Include proper error handling for missing files
-        if 'file' not in request.files:
-            return jsonify({
-                "error": "No file part",
-                "message": "Please upload an image with the key 'file'"
-            }), 400
-        
-        file = request.files['file']
-        if file.filename == '':
-            return jsonify({
-                "error": "No selected file",
-                "message": "No file was uploaded"
-            }), 400
+    """/predict route with exact requirements"""
+    if "file" not in request.files:
+        return jsonify({"error": "No file uploaded"}), 400
 
-        # Read the image
-        img_bytes = file.read()
-        img = Image.open(io.BytesIO(img_bytes))
-        
-        # Preprocess the image (Standard for many leaf models)
+    file = request.files["file"]
+    if file.filename == '':
+        return jsonify({"error": "No file selected"}), 400
+
+    try:
+        # Load model
+        ml_model = get_model()
+        if ml_model is None:
+            return jsonify({"error": "Model not available"}), 500
+
+        # Image processing: Resize to 224x224 and Normalize by 255.0
+        img = Image.open(file)
         if img.mode != 'RGB':
             img = img.convert('RGB')
         img = img.resize((224, 224))
         
         img_array = image.img_to_array(img)
-        img_array = np.expand_dims(img_array, axis=0) # Add batch dimension
-        # Normalize if your model requires it (common for TF/Keras)
-        # img_array = img_array / 255.0 
+        # Normalize as requested: img_array / 255.0
+        img_array = np.expand_dims(img_array / 255.0, axis=0)
 
-        # Load model and predict
-        ml_model = get_model()
-        if ml_model is None:
-            return jsonify({"error": "Model initialization failed"}), 500
-
+        # Make prediction
         predictions = ml_model.predict(img_array)
-        
-        # Get result
-        predicted_class_idx = np.argmax(predictions[0])
+        pred_index = np.argmax(predictions[0])
         confidence = float(np.max(predictions[0]))
-        prediction_label = CLASS_NAMES[predicted_class_idx]
 
-        # 2. Return JSON in the requested format
+        # Return JSON in the requested format
         return jsonify({
-            "prediction": prediction_label,
+            "prediction": LABELS[pred_index],
             "confidence": round(confidence, 4)
         }), 200
 
     except Exception as e:
-        print(f"Error during prediction: {str(e)}")
-        return jsonify({
-            "error": "Prediction error",
-            "message": str(e)
-        }), 500
+        print(f"Prediction Error: {str(e)}")
+        return jsonify({"error": str(e)}), 500
 
-@app.route('/health', methods=['GET'])
+@app.route("/health", methods=["GET"])
 def health():
-    return jsonify({"status": "healthy", "model_loaded": model is not None}), 200
-
-@app.route('/', methods=['GET'])
-def index():
+    ml_model = get_model()
     return jsonify({
-        "message": "Coffee Leaf Nutrition Prediction API",
-        "status": "Running",
-        "endpoints": ["/predict (POST)", "/health (GET)"]
+        "status": "healthy" if ml_model else "unhealthy",
+        "model_loaded": ml_model is not None
     }), 200
 
-# 4. Production-ready setup
-if __name__ == '__main__':
-    # Pre-warm the model
+@app.route("/", methods=["GET"])
+def home():
+    return jsonify({
+        "message": "Coffee Leaf Nutrition Prediction API",
+        "cors_origin": "https://coffee-nutrition.vercel.app"
+    }), 200
+
+# Production-ready gunicorn binding check
+if __name__ == "__main__":
     get_model()
-    # For local testing
-    port = int(os.environ.get('PORT', 5000))
-    app.run(host='0.0.0.0', port=port, debug=False)
+    port = int(os.environ.get("PORT", 5000))
+    app.run(host="0.0.0.0", port=port)
