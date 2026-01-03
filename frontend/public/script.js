@@ -2,7 +2,7 @@
 const CONFIG = {
     maxFileSize: 10 * 1024 * 1024, // 10MB
     acceptedFormats: ['image/png', 'image/jpeg', 'image/jpg'],
-    apiEndpoint: '/predict', // Update this with your actual API endpoint
+    apiEndpoint: 'http://localhost:5000/predict', // Update this with your Render backend URL after deployment
 };
 
 // ===== Nutrient Information Database =====
@@ -324,7 +324,7 @@ async function callPredictionAPI(file) {
     const formData = new FormData();
     formData.append('file', file);
 
-    const response = await fetch('http://localhost:5000/predict', {
+    const response = await fetch(CONFIG.apiEndpoint, {
         method: 'POST',
         body: formData
     });
