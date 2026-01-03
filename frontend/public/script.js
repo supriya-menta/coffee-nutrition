@@ -346,8 +346,14 @@ async function analyzeImage() {
         // Display results
         displayResults(result);
     } catch (error) {
-        showError('Analysis failed. Please make sure the backend server is running.\n\nTo start the server, run: python app.py');
-        console.error('Analysis error:', error);
+        console.error('Detailed Analysis Error:', error);
+        let errorMsg = 'Analysis failed. ';
+        if (error.message.includes('fetch')) {
+            errorMsg += 'Could not connect to the backend server. Please verify the Render URL is live.';
+        } else {
+            errorMsg += error.message;
+        }
+        showError(errorMsg + '\n\nCheck the browser console (F12) for technical details.');
     } finally {
         elements.analyzeBtn.classList.remove('loading');
         elements.analyzeBtn.disabled = false;

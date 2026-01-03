@@ -15,7 +15,8 @@ from dotenv import load_dotenv
 load_dotenv()
 
 app = Flask(__name__)
-CORS(app)  # Enable CORS for frontend requests
+# Enable CORS for all origins, allowing the hosted frontend (Vercel) to talk to the backend (Render)
+CORS(app, resources={r"/*": {"origins": "*"}})
 
 # Global variable to store the model pipeline
 model_pipeline = None
@@ -111,8 +112,15 @@ def predict():
         return jsonify(result), 200
     
     except Exception as e:
-        print(f"Error during prediction: {str(e)}")
-        return jsonify({'error': f'Prediction failed: {str(e)}'}), 500
+        import traceback
+        error_details = traceback.format_exc()
+        print(f"!!! Error during prediction: {str(e)}")
+        print(error_details)
+        return jsonify({
+            'error': 'Prediction failed',
+            'message': str(e),
+            'details': 'Check backend logs for full traceback'
+        }), 500
 
 @app.route('/health', methods=['GET'])
 def health():
