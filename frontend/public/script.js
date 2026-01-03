@@ -2,7 +2,7 @@
 const CONFIG = {
     maxFileSize: 10 * 1024 * 1024, // 10MB
     acceptedFormats: ['image/png', 'image/jpeg', 'image/jpg'],
-    apiEndpoint: 'https://coffee-nutrition-1.onrender.com/predict',
+    apiEndpoint: 'https://coffee-nutrition.onrender.com/predict',
     // Update this with your actual API endpoint
 };
 

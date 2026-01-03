@@ -113,8 +113,12 @@ def home():
         "cors_origin": "https://coffee-nutrition.vercel.app"
     }), 200
 
+# Pre-warm the model at the top level so it loads on Gunicorn start
+# This allows us to see loading errors immediately in the logs
+print("=== INITIALIZING MODEL ON STARTUP ===", flush=True)
+get_model()
+
 # Production-ready gunicorn binding check
 if __name__ == "__main__":
-    get_model()
     port = int(os.environ.get("PORT", 5000))
     app.run(host="0.0.0.0", port=port)
