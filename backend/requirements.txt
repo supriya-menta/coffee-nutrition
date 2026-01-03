@@ -1,4 +1,5 @@
-# Use whatever TensorFlow version is available for your Python
+setuptools
+wheel
 tensorflow-cpu
 keras
 numpy
