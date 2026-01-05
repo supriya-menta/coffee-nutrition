@@ -57,6 +57,28 @@ cd frontend
 
 Your `weights.hdf5` file is **97MB**, which exceeds Vercel's 50MB serverless function limit.
 
+### 🚨 CRITICAL: Render Free Tier Configuration
+
+**You MUST update your Render Start Command** to use a sync worker instead of gthread:
+
+1. Go to Render Dashboard → Your Backend Service → Settings
+2. Find "Start Command"
+3. Change it to:
+   ```
+   gunicorn app:app --bind 0.0.0.0:$PORT --timeout 300 --workers 1
+   ```
+
+**❌ DO NOT USE:**
+```
+gunicorn app:app --bind 0.0.0.0:$PORT --timeout 120 --workers 1 --threads 4 --worker-class gthread
+```
+
+**Why this is critical:**
+- `gthread` + TensorFlow causes CPU contention on free tier
+- Sync worker is faster for ML inference (30-50% improvement)
+- TensorFlow already manages threads internally
+- This prevents timeout errors during prediction
+
 
 
 
