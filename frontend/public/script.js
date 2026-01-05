@@ -339,6 +339,9 @@ async function analyzeImage() {
     // Show loading state
     elements.analyzeBtn.classList.add('loading');
     elements.analyzeBtn.disabled = true;
+    const btnText = elements.analyzeBtn.querySelector('.btn-text');
+    const originalText = btnText.textContent;
+    btnText.textContent = 'Analyzing...';
 
     try {
         // Call real API endpoint
@@ -349,15 +352,23 @@ async function analyzeImage() {
     } catch (error) {
         console.error('Detailed Analysis Error:', error);
         let errorMsg = 'Analysis failed. ';
-        if (error.message.includes('fetch')) {
-            errorMsg += 'Could not connect to the backend server. Please verify the Render URL is live.';
+        
+        if (error.message.includes('timeout')) {
+            errorMsg += error.message + '\n\nRender free tier services may take 30-60 seconds to wake up after inactivity.';
+        } else if (error.message.includes('Network error') || error.message.includes('fetch')) {
+            errorMsg += error.message + '\n\nPlease verify:\n1. The backend is deployed on Render\n2. The API URL is correct\n3. CORS is properly configured';
+        } else if (error.message.includes('CORS')) {
+            errorMsg += 'CORS error: The backend server is not allowing requests from this domain.';
         } else {
             errorMsg += error.message;
         }
+        
         showError(errorMsg + '\n\nCheck the browser console (F12) for technical details.');
     } finally {
         elements.analyzeBtn.classList.remove('loading');
         elements.analyzeBtn.disabled = false;
+        const btnText = elements.analyzeBtn.querySelector('.btn-text');
+        btnText.textContent = 'Analyze Leaf';
     }
 }
 
@@ -381,16 +392,41 @@ async function callPredictionAPI(file) {
     const formData = new FormData();
     formData.append('file', file);
 
-    const response = await fetch(CONFIG.apiEndpoint, {
-        method: 'POST',
-        body: formData
-    });
+    // Create AbortController for timeout
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 90000); // 90 second timeout for Render cold starts
 
-    if (!response.ok) {
-        throw new Error('API request failed');
+    try {
+        const response = await fetch(CONFIG.apiEndpoint, {
+            method: 'POST',
+            body: formData,
+            signal: controller.signal
+        });
+
+        clearTimeout(timeoutId);
+
+        if (!response.ok) {
+            const errorText = await response.text();
+            let errorMessage = `API request failed with status ${response.status}`;
+            try {
+                const errorJson = JSON.parse(errorText);
+                errorMessage = errorJson.error || errorMessage;
+            } catch (e) {
+                errorMessage = errorText || errorMessage;
+            }
+            throw new Error(errorMessage);
+        }
+
+        return await response.json();
+    } catch (error) {
+        clearTimeout(timeoutId);
+        if (error.name === 'AbortError') {
+            throw new Error('Request timeout: The server is taking too long to respond. This might be due to the server starting up (cold start). Please try again in a moment.');
+        } else if (error.message.includes('fetch')) {
+            throw new Error('Network error: Could not connect to the backend server. Please check if the server is running.');
+        }
+        throw error;
     }
-
-    return await response.json();
 }
 
 // ===== Display Functions =====

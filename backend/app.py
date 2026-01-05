@@ -13,12 +13,14 @@ from tensorflow.keras.models import load_model
 # Initialize Flask app
 app = Flask(__name__)
 
-# Enable CORS specifically for your Vercel frontend
+# Enable CORS for all origins (more flexible for deployment)
+# You can restrict this to specific origins in production if needed
 CORS(app, resources={
     r"/*": {
-        "origins": ["https://coffee-nutrition.vercel.app"],
+        "origins": ["*"],  # Allow all origins - update to specific domain in production if needed
         "methods": ["GET", "POST", "OPTIONS"],
-        "allow_headers": ["Content-Type", "Authorization"]
+        "allow_headers": ["Content-Type", "Authorization"],
+        "supports_credentials": False
     }
 })
 
@@ -118,7 +120,11 @@ def health():
 def home():
     return jsonify({
         "message": "Coffee Leaf Nutrition Prediction API",
-        "cors_origin": "https://coffee-nutrition.vercel.app"
+        "status": "running",
+        "endpoints": {
+            "/predict": "POST - Upload image for prediction",
+            "/health": "GET - Check API health status"
+        }
     }), 200
 
 # Pre-warm the model at the top level so it loads on Gunicorn start
