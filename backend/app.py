@@ -13,8 +13,14 @@ from tensorflow.keras.models import load_model
 # Initialize Flask app
 app = Flask(__name__)
 
-# 1. Enable CORS for all origins (robust fix for connectivity issues)
-CORS(app, resources={r"/*": {"origins": "*"}})
+# Enable CORS specifically for your Vercel frontend
+CORS(app, resources={
+    r"/*": {
+        "origins": ["https://coffee-nutrition.vercel.app"],
+        "methods": ["GET", "POST", "OPTIONS"],
+        "allow_headers": ["Content-Type", "Authorization"]
+    }
+})
 
 # Absolute path to model.h5 in the backend directory
 # We use absolute path to avoid issues with different working directories on Render
