@@ -1,6 +1,13 @@
 import os
-os.environ['TF_CPP_MIN_LOG_LEVEL'] = '3'  # Minimize TF logging
-os.environ['TF_ENABLE_ONEDNN_OPTS'] = '0' # Stability on some cloud envs
+# CRITICAL: Force single-thread mode BEFORE importing TensorFlow
+# This prevents thread thrashing and stabilizes inference time on Render free tier
+os.environ["OMP_NUM_THREADS"] = "1"
+os.environ["TF_NUM_INTRAOP_THREADS"] = "1"
+os.environ["TF_NUM_INTEROP_THREADS"] = "1"
+os.environ["CUDA_VISIBLE_DEVICES"] = "-1"  # Disable GPU
+os.environ["TF_CPP_MIN_LOG_LEVEL"] = "3"  # Minimize TF logging
+os.environ["TF_ENABLE_ONEDNN_OPTS"] = "0"  # Stability on some cloud envs
+
 import io
 import numpy as np
 from PIL import Image
@@ -10,32 +17,16 @@ import tensorflow as tf
 from tensorflow.keras.preprocessing import image
 from tensorflow.keras.models import load_model
 
-# Configure TensorFlow for better performance on limited resources
+# Configure TensorFlow for single-thread CPU inference (critical for Render free tier)
 try:
-    gpus = tf.config.experimental.list_physical_devices('GPU')
-    if gpus:
-        try:
-            for gpu in gpus:
-                tf.config.experimental.set_memory_growth(gpu, True)
-        except RuntimeError as e:
-            print(f"GPU memory growth setting error: {e}", flush=True)
-except:
-    pass  # No GPU available, continue with CPU
-
-# Limit TensorFlow CPU threads for better resource management on Render
-# Using single thread to avoid resource contention
-tf.config.threading.set_intra_op_parallelism_threads(1)
-tf.config.threading.set_inter_op_parallelism_threads(1)
-
-# Set memory growth to avoid OOM errors
-try:
-    physical_devices = tf.config.list_physical_devices('CPU')
-    if physical_devices:
-        tf.config.set_logical_device_configuration(
-            physical_devices[0],
-            [tf.config.LogicalDeviceConfiguration()])
+    # Ensure no GPU is used
+    tf.config.set_visible_devices([], 'GPU')
 except:
     pass
+
+# Force single-thread execution (reduces CPU contention)
+tf.config.threading.set_intra_op_parallelism_threads(1)
+tf.config.threading.set_inter_op_parallelism_threads(1)
 
 # Initialize Flask app
 app = Flask(__name__)
@@ -121,19 +112,12 @@ def predict():
         img_array = np.expand_dims(img_array / 255.0, axis=0)
         print("DEBUG: Image processed, shape:", img_array.shape, flush=True)
 
-        # Make prediction - use direct model call for faster inference
-        # Direct call is faster than predict() for single samples
+        # Make prediction with verbose=0 to reduce overhead
+        # Use batch_size=1 and steps=1 for faster inference
         print("DEBUG: Starting prediction...", flush=True)
         import time
         start_time = time.time()
-        try:
-            # Try direct model call first (faster for single predictions)
-            predictions = ml_model(img_array, training=False)
-            predictions = predictions.numpy()
-        except Exception as e:
-            print(f"DEBUG: Direct call failed, using predict(): {str(e)}", flush=True)
-            # Fallback to predict() if direct call doesn't work
-            predictions = ml_model.predict(img_array, verbose=0, batch_size=1)
+        predictions = ml_model.predict(img_array, verbose=0, batch_size=1)
         elapsed_time = time.time() - start_time
         print(f"DEBUG: Prediction completed in {elapsed_time:.2f} seconds", flush=True)
         
