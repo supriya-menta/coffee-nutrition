@@ -111,9 +111,13 @@ def predict():
         print("DEBUG: Image processed, shape:", img_array.shape, flush=True)
 
         # Make prediction with verbose=0 to reduce overhead
-        print("DEBUG: Starting prediction (this may take 30-60s on first call)...", flush=True)
-        predictions = ml_model.predict(img_array, verbose=0)
-        print("DEBUG: Prediction completed", flush=True)
+        # Use batch_size=1 and steps=1 for faster inference
+        print("DEBUG: Starting prediction...", flush=True)
+        import time
+        start_time = time.time()
+        predictions = ml_model.predict(img_array, verbose=0, batch_size=1)
+        elapsed_time = time.time() - start_time
+        print(f"DEBUG: Prediction completed in {elapsed_time:.2f} seconds", flush=True)
         
         pred_index = np.argmax(predictions[0])
         confidence = float(np.max(predictions[0]))

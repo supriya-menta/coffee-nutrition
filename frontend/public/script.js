@@ -376,7 +376,7 @@ async function analyzeImage() {
         let errorMsg = 'Analysis failed. ';
         
         if (error.message.includes('timeout')) {
-            errorMsg += error.message + '\n\nRender free tier services may take 30-90 seconds for the first prediction after cold start. Please wait and try again.';
+            errorMsg += error.message + '\n\nThe first prediction after cold start can take 60-120 seconds. Please wait for the prediction to complete or try again.';
         } else if (error.message.includes('Network error') || error.message.includes('fetch')) {
             errorMsg += error.message + '\n\nPlease verify:\n1. The backend is deployed on Render\n2. The API URL is correct\n3. CORS is properly configured';
         } else if (error.message.includes('CORS')) {
@@ -416,7 +416,7 @@ async function callPredictionAPI(file) {
 
     // Create AbortController for timeout
     const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), 120000); // 120 second timeout for Render cold starts and first prediction
+    const timeoutId = setTimeout(() => controller.abort(), 180000); // 180 second timeout (matches Gunicorn timeout)
 
     try {
         const response = await fetch(CONFIG.apiEndpoint, {
