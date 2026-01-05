@@ -31,16 +31,9 @@ tf.config.threading.set_inter_op_parallelism_threads(1)
 # Initialize Flask app
 app = Flask(__name__)
 
-# Enable CORS for all origins (more flexible for deployment)
-# You can restrict this to specific origins in production if needed
-CORS(app, resources={
-    r"/*": {
-        "origins": ["*"],  # Allow all origins - update to specific domain in production if needed
-        "methods": ["GET", "POST", "OPTIONS"],
-        "allow_headers": ["Content-Type", "Authorization"],
-        "supports_credentials": False
-    }
-})
+# Enable CORS for all origins - use simple configuration for maximum compatibility
+# This handles preflight requests automatically
+CORS(app, origins="*", methods=["GET", "POST", "OPTIONS"], allow_headers=["Content-Type", "Authorization"])
 
 # Absolute path to model.h5 in the backend directory
 # We use absolute path to avoid issues with different working directories on Render
