@@ -156,7 +156,18 @@ def home():
 # Pre-warm the model at the top level so it loads on Gunicorn start
 # This allows us to see loading errors immediately in the logs
 print("=== INITIALIZING MODEL ON STARTUP ===", flush=True)
-get_model()
+warmup_model = get_model()
+
+# Warm up the model with a dummy prediction to compile the TensorFlow graph
+# This makes the first real prediction much faster (avoids 30-60s compilation delay)
+if warmup_model is not None:
+    try:
+        print("=== WARMING UP MODEL (compiling TensorFlow graph) ===", flush=True)
+        dummy_input = np.zeros((1, 224, 224, 3), dtype=np.float32)
+        _ = warmup_model.predict(dummy_input, verbose=0)
+        print("=== MODEL WARMUP COMPLETE ===", flush=True)
+    except Exception as e:
+        print(f"WARNING: Model warmup failed (this is okay, first prediction will be slower): {str(e)}", flush=True)
 
 # Production-ready gunicorn binding check
 if __name__ == "__main__":
