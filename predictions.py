@@ -5,7 +5,7 @@ import pandas as pd
 from tensorflow import keras
 from sklearn.base import BaseEstimator, TransformerMixin
 from sklearn.pipeline import Pipeline
-from keras.preprocessing import image
+from tensorflow.keras.preprocessing import image
 from PIL import Image
 import streamlit as st
 st.set_page_config(layout="wide")

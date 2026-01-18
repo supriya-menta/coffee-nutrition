@@ -1,0 +1,9 @@
+{
+    "name": "coffee-leaf-nutrition-frontend",
+    "version": "1.0.0",
+    "description": "Coffee Leaf Nutrition Prediction Frontend",
+    "scripts": {
+        "dev": "cd .. && python -m http.server 3000",
+        "build": "echo 'No build required for static site'"
+    }
+}

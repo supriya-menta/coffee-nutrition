@@ -1,0 +1,13 @@
+# Core ML Dependencies
+tensorflow-cpu==2.8.0
+keras==2.8.0
+numpy==1.22.3
+scikit-learn==1.0.2
+Pillow==9.1.0
+
+# Web Framework
+Flask==2.1.1
+flask-cors==3.0.10
+
+# Additional dependencies
+h5py==3.6.0
